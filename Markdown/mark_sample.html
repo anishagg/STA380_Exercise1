@@ -355,7 +355,7 @@ head(wghts2)</code></pre>
 <ol start="2" style="list-style-type: lower-alpha">
 <li>One row correspoding to a probability vector is used a time to run the monte carlo simulations on bootstrapped samples. Maximum loss value at 5% is calculated for each probability vector.</li>
 </ol>
-<pre class="r"><code>set.seed(100)
+<pre class="r"><code>set.seed(99)
 safe = foreach(j = 1:50, .combine='cbind') %do% {
   initial_wealth = 100000
   sim2 = foreach(i=1:1000, .combine='rbind') %do% {
@@ -376,15 +376,15 @@ safe = foreach(j = 1:50, .combine='cbind') %do% {
 losses = apply(safe,2, function(x) {initial_wealth - quantile(x, 0.05)})
 
 head(losses)</code></pre>
-<pre><code>## [1] 3245.554 3950.981 4988.794 3450.339 3176.553 4599.845</code></pre>
+<pre><code>## [1] 3055.037 4040.252 5142.676 3384.326 3162.731 4881.255</code></pre>
 <ol start="3" style="list-style-type: lower-alpha">
 <li>The probability vector which gives the least value of loss is picked up as the optimum distribution to 5 ETFs.</li>
 </ol>
 <pre class="r"><code>min(losses)</code></pre>
-<pre><code>## [1] 2635.328</code></pre>
+<pre><code>## [1] 2677.781</code></pre>
 <pre class="r"><code>wghts2[which(losses==min(losses)),]</code></pre>
-<pre><code>## [1] 0.0 0.1 0.8 0.0 0.1</code></pre>
-<p>So the maximum loss at 5% level comes out to be 2635.33 using the safe portfolio. And optimum distribution of the wealth is 0.1 in SPY, 0.2 in TLT, 0.7 in LQD and nothing in the remaining two. These numbers are totally in sync with the values of standard deviation. LQD being the least volatile one, got the highest percent allocated.</p>
+<pre><code>## [1] 0.1 0.3 0.6 0.0 0.0</code></pre>
+<p>So the maximum loss at 5% level comes out to be 2677.78 using the safe portfolio. And optimum distribution of the wealth is 0.1 in SPY, 0.3 in TLT, 0.6 in LQD and nothing in the remaining two. These numbers are totally in sync with the values of standard deviation. LQD being the least volatile one, got the highest percent allocated.</p>
 </div>
 <div id="scenario-c-aggressive-portfolio" class="section level4">
 <h4>Scenario C: Aggressive portfolio</h4>
@@ -459,7 +459,7 @@ safest[1] = round(min(losses),2)
 profit2 = apply(safe,2, function(x) {quantile(x, 0.95) - initial_wealth})
 safest[2] = round(profit2[which(losses==min(losses))],2)
 safest</code></pre>
-<pre><code>## [1] 2635.33 3761.99</code></pre>
+<pre><code>## [1] 2677.78 3945.60</code></pre>
 <pre class="r"><code>aggr = c(0,0)
 aggr[1] = round(min(losses3),2)
 profit3 = apply(aggresive,2, function(x) {quantile(x, 0.95) - initial_wealth})
