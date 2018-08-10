@@ -1,8 +1,8 @@
 ---
 title: "Pedictive Modeling - 11Aug"
 output: 
-  md_document:
-    variant: markdown_github
+  github_document:
+    pandoc_args: --webtex
 ---
 
 ```{r setup, include=FALSE}
