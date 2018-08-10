@@ -1,4 +1,4 @@
-Pedictive Modeling - 11Aug
+Pedictive Modeling - 10Aug
 ================
 
 ### Probability Practice - Part A
@@ -41,7 +41,7 @@ First, we will analyze the recommendation from the hired person.
 
 1.  Low occupancy buildings were scrapped from the analysis, but even they could contain some meaningful information about the rents in green and non-green buildings. We see from the following plot that very low leasing rates are found majorly in non-green buildings and we are scrapping this information away by removing such rows.
 
-![](STA_380_files/figure-markdown_github/unnamed-chunk-2-1.png)
+![](Solutions_md_output_files/figure-markdown_github/unnamed-chunk-2-1.png)
 
 Other methods should be used in an attempt to clean the data and remove outliers. Exploring the variation in size and stories of buildings, we have the following results:
 
@@ -61,7 +61,7 @@ So, applying these filters basis building size and number of storeys on the orig
 
 1.  Now lets look at the rent distribution in green vs non-green buildings.
 
-    ![](STA_380_files/figure-markdown_github/unnamed-chunk-7-1.png)
+    ![](Solutions_md_output_files/figure-markdown_github/unnamed-chunk-7-1.png)
 
     Rent distribution for green buildings:
 
@@ -91,7 +91,7 @@ The maximum possible difference in rents thus comes out to be ![(31.22 - 25.72) 
 
 1.  Before starting the cost benefit analysis, let us check for any confounding variables. This is done because we have found correlation between rent and green buildings uptil now, but have no proof of the causation. Since the clusters take care of controlled sampling, we look for variables which can vary even within a cluster and can impact rents of green vs non-green buildings. Two of such variables are age and class.
 
-    ![](STA_380_files/figure-markdown_github/unnamed-chunk-13-1.png)
+    ![](Solutions_md_output_files/figure-markdown_github/unnamed-chunk-13-1.png)
 
     It is observed that all green buildings are very new and this can be the cause of high median price of green buildings. Upon checking for the correlation between age and rent, the vaue comes out to be -0.1466975.
     On checking the same metric of rent with class\_a, result obtained is 0.2216201. The distribution is as follows:
@@ -168,14 +168,14 @@ The AIC remians almost the same. Hence, it can be stated that green\_rating is n
 
 1.  Going further, looking at the variation in rents within green buildings,
 
-![](STA_380_files/figure-markdown_github/unnamed-chunk-17-1.png)
+![](Solutions_md_output_files/figure-markdown_github/unnamed-chunk-17-1.png)
 
 The difference in median values is not significant. Though the spread of LEED certified buildings tend to be on the higher side.
 
 1.  Ways to improve the study:
     Since the location of building is known, the buildier will also know the cluster to which the property belongs. So analysis of rents within clusters of interest can be done to get better insights. Average rents show a remarkable variance within clusters:
 
-![](STA_380_files/figure-markdown_github/unnamed-chunk-18-1.png)
+![](Solutions_md_output_files/figure-markdown_github/unnamed-chunk-18-1.png)
 
 Bootstrapping: ETFs
 -------------------
@@ -199,9 +199,9 @@ Our matrix looks like this:
     ## 2005-01-10 -0.003176939
     ## 2005-01-11 -0.010123753
 
-To get an idea of the correlation, we plot pairs for all five: ![](STA_380_files/figure-markdown_github/unnamed-chunk-21-1.png) All the ETFs look quite correlated with some outliers in EEMa and LQD being very stable.
+To get an idea of the correlation, we plot pairs for all five: ![](Solutions_md_output_files/figure-markdown_github/unnamed-chunk-21-1.png) All the ETFs look quite correlated with some outliers in EEMa and LQD being very stable.
 
-Lets also look at their individual fluctuations to understand the volatility of each. ![](STA_380_files/figure-markdown_github/unnamed-chunk-22-1.png)
+Lets also look at their individual fluctuations to understand the volatility of each. ![](Solutions_md_output_files/figure-markdown_github/unnamed-chunk-22-1.png)
 
 There is a huge fluctualtion around 1000th observation for all the ETFs. These rows correspond to days in the year 2008 - the time of economic crisis when the stock market went haywire.
 In an attempt to quantify this fluctualtions, lets look at the correlation matrix and standard deviations of each of these ETFs. Standard deviations are calculated from rows starting 1100 to eliminate the impact of 2008 uncertainty in current predictions.
@@ -209,18 +209,18 @@ In an attempt to quantify this fluctualtions, lets look at the correlation matri
 Correlation matrix:
 
     ##            ClCl.SPYa  ClCl.TLTa  ClCl.LQDa   ClCl.EEMa   ClCl.VNQa
-    ## ClCl.SPYa  1.0000000 -0.4135842 0.10201265  0.31209933  0.76196507
-    ## ClCl.TLTa -0.4135842  1.0000000 0.45248143 -0.12033619 -0.23555622
-    ## ClCl.LQDa  0.1020126  0.4524814 1.00000000  0.06008424  0.07589612
-    ## ClCl.EEMa  0.3120993 -0.1203362 0.06008424  1.00000000  0.21904327
-    ## ClCl.VNQa  0.7619651 -0.2355562 0.07589612  0.21904327  1.00000000
+    ## ClCl.SPYa  1.0000000 -0.4135842 0.10201265  0.31209933  0.76183118
+    ## ClCl.TLTa -0.4135842  1.0000000 0.45248143 -0.12033619 -0.23566750
+    ## ClCl.LQDa  0.1020126  0.4524814 1.00000000  0.06008424  0.07577252
+    ## ClCl.EEMa  0.3120993 -0.1203362 0.06008424  1.00000000  0.21899233
+    ## ClCl.VNQa  0.7618312 -0.2356675 0.07577252  0.21899233  1.00000000
 
 Standard Deviations:
 (a) SPY: 0.0117556
 (b) TLT: 0.0086969
 (c) LQD: 0.0049332
 (d) EEM: 0.050991
-(e) VNQ: 0.0198748
+(e) VNQ: 0.0198774
 
 These numbers suggest that EEM is the most aggressive of all ETFs and LQD the safest.
 
@@ -255,7 +255,7 @@ Looking at the distribution of losses at the end of 20 days as a result of 5000 
 hist(initial_wealth - sim1[,n_days], 25)
 ```
 
-![](STA_380_files/figure-markdown_github/unnamed-chunk-25-1.png)
+![](Solutions_md_output_files/figure-markdown_github/unnamed-chunk-25-1.png)
 
 Value at risk at 5% level comes out to be 5860.35
 
@@ -494,7 +494,7 @@ head(sm, 5)
 
 Lets have a look at the number of tweets in each category.
 
-![](STA_380_files/figure-markdown_github/unnamed-chunk-38-1.png)
+![](Solutions_md_output_files/figure-markdown_github/unnamed-chunk-38-1.png)
 
 Maximum number of tweets are categorized under chatter. Since this is a miscellaneous category and will not have any information about market segments, we will drop this column before proceeding with clustering algorithms.
 
@@ -505,7 +505,7 @@ sum = sort(colSums(sm1),decreasing = TRUE)
 barplot(sum,las=2)
 ```
 
-![](STA_380_files/figure-markdown_github/unnamed-chunk-39-1.png)
+![](Solutions_md_output_files/figure-markdown_github/unnamed-chunk-39-1.png)
 
 #### (a) K means++
 
@@ -526,7 +526,7 @@ cost[i] = clust1$tot.withinss  #calculate the cost of each cluster
 ```
 
 Look at the plot of cost Vs number of clusters:
-![](STA_380_files/figure-markdown_github/unnamed-chunk-41-1.png)
+![](Solutions_md_output_files/figure-markdown_github/unnamed-chunk-41-1.png)
 
 K= 10 looks like the optimum value for K,above which the slope of cost curve decreases.So a final cluster will be obtained now with this optimum k to proceed with further analysis.
 
@@ -626,7 +626,7 @@ summary(pc)
 The table above shows that around 75% of the variablility is explained by using 15 variables.
 
 Looking at the variance explained by each principal component:
-![](STA_380_files/figure-markdown_github/unnamed-chunk-48-1.png)
+![](Solutions_md_output_files/figure-markdown_github/unnamed-chunk-48-1.png)
 
 There is an elbow at number of components = 6 but from the table, 6 components only explain 45% of the variability. Hence, we will do clustering using first 15 variables (75% variability).
 
@@ -699,7 +699,7 @@ clust2 = hclust(d_pc, method="ward.D")
 plot(clust2) # display dendogram
 ```
 
-![](STA_380_files/figure-markdown_github/unnamed-chunk-52-1.png)
+![](Solutions_md_output_files/figure-markdown_github/unnamed-chunk-52-1.png)
 
 We will have to cut this to an appropriate number of branches. Looking at the above plot, k = 10 should do a good job.
 
@@ -710,7 +710,7 @@ groups = cutree(clust2, k=10) # cut tree into 10 clusters
 rect.hclust(clust2, k=10, border="red")
 ```
 
-![](STA_380_files/figure-markdown_github/unnamed-chunk-53-1.png)
+![](Solutions_md_output_files/figure-markdown_github/unnamed-chunk-53-1.png)
 
 ``` r
 summary(factor(groups))
@@ -721,7 +721,7 @@ summary(factor(groups))
 
 Cluster sizes now look even. We can go ahead with this. So now lets try to analyse the segments this clustering has made. These are plots of categories with maximum number of tweets in each cluster.
 
-![](STA_380_files/figure-markdown_github/unnamed-chunk-55-1.png)
+![](Solutions_md_output_files/figure-markdown_github/unnamed-chunk-55-1.png)
 
 A rough idea of each of the plots could be as follows:
 Cluster 1: Fitness freaks
