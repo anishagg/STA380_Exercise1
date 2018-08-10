@@ -1,0 +1,631 @@
+---
+title: "Pedictive Modeling - 11Aug"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Probability Practice - Part A
+
+Probability of the person being a random clicker, $p(RC) = 0.3$  
+Probability of the person being a truthful clicker, $p(TC) = 0.7$  
+Using survery results, $p(Yes) = 0.65$ and $p(No) = 0.35$  
+For random clickers, $p(Yes|RC) = 0.5$  
+
+Applying rule of total probability,  
+$p(Yes) = p(Yes|TC)*p(TC) + p(Yes|RC)*p(RC)$
+
+All values except P(Yes|TC) are known in the above equation. Plugging in we get,  
+$0.65 = p(Yes|TC)*0.7 + 0.5*0.3$
+
+Solving gives $p(Yes|TC) =$ `r (0.65-(0.5*0.3))/0.7`
+
+
+### Probability Practice - Part B
+
+Probability to test positive given someone has disease, $p(P|D) = 0.993$    
+Probability to test negative given someone is healthy, $p(N|H) = 0.9999$  
+Probability that someone has a disease, $p(D) = 0.000025$  
+
+To find: Probability of having disease given the test is positive, i.e. $p(D|P)$  
+
+$p(D|P) = \frac{p(P.D)}{p(P)}$  
+        $= \frac{p(P|D)*p(D)}{p(P|D)*p(D) + p(P|H)*p(H)}$  
+  
+    
+Here, $p(P|H) = 1 - p(N|H)$  
+      $p(H) = 1 - p(D)$  
+      
+Substituting all values give $p(D|P) =$ `r (0.993*0.000025/(0.993*0.000025 + 0.0001*0.999975))`  
+
+This number is very low if it is planned to implement this testing policy for the disease. Only ~20% of the individuals identified positive actually have the disease. 
+
+## Exploratory analysis: green buildings
+
+```{r, include =FALSE}
+library (caret)
+setwd("../data")
+gb = read.csv("greenbuildings.csv")
+attach(gb)
+```
+
+First, we will analyze the recommendation from the hired person. 
+  
+1. Low occupancy buildings were scrapped from the analysis, but even they could contain some meaningful information about the rents in green and non-green buildings. We see from the following plot that very low leasing rates are found majorly in non-green buildings and we are scrapping this information away by removing such rows.  
+
+```{r, echo=FALSE}
+boxplot(leasing_rate~green_rating, xlab="Green rating", ylab = "leasing rate", main = "Leasing rate variations")
+```
+
+
+  Other methods should be used in an attempt to clean the data and remove outliers. Exploring the variation in size and stories of buildings, we have the following results:
+
+  a.  More than 25% of the buildings are covered within size range of 100,000 sq. ft. to 300,000 sq. ft. and from the recommendation we note that size of this new building is 250,000 sq. ft. Hence, for the analysis going forward, it is appropriate to concentrate the analysis for buildings in this size range.
+     
+     
+    ```{r, echo = FALSE}
+          summary(size)
+    ```
+
+  b. The builder has a 15 storey building, so lets narrow down our dataset basis storey sizes. Looking at the variations in number of storeys in the dataset - 
+  
+    ```{r, echo = FALSE}
+          summary(stories)
+    ```
+      
+      More than 50% of the buildings are covered within 4 to 30 storeys. 
+    
+    ```{r, include = FALSE}
+        size_500 = gb[gb[,"size"] <= 500000 & 100000 <= gb[,"size"],]
+        filtered_gb = size_500[size_500[,"stories"] <= 30 & size_500[,"stories"] >= 4,]
+    ```
+
+So, applying these filters basis building size and number of storeys on the original dataset with 7894 rows, we reduce our dataset to `r nrow(filtered_gb)` rows.
+
+
+2. Now lets look at the rent distribution in green vs non-green buildings.
+    ```{r, include = FALSE}
+        green = filtered_gb[filtered_gb[,"green_rating"] == 1,]
+        non_green = filtered_gb[filtered_gb[,"green_rating"] == 0,]
+    ```
+    ```{r, echo = FALSE}
+        par(mfrow = c(1,2))
+        boxplot(green$Rent, xlab = "Green buildings", ylab = "rent")
+        boxplot(non_green$Rent, xlab = "Non Green buildings", ylab = "rent")
+        mtext("Variation of rents in cleaned dataset", side = 3, line = -2, outer = TRUE)
+    ```
+    
+    Rent distribution for green buildings:
+    
+    ```{r, echo = FALSE}
+        summary(green$Rent)
+    ```
+    
+    Rent distribution for non-green buildings:
+    
+    ```{r, echo = FALSE}
+        summary(non_green$Rent)
+    ```
+    
+So, the median values for green buildings is now `r median(green$Rent)` and for non-green buildings it is `r median(non_green$Rent)`.  
+
+If we go back to the problem, we started with only 685 green buildings out of the total 1360. Since the medians calculated above are not on the whole population, we will implement bootstrapping methods to determine our confidence in stated values.
+
+    ```{r, include = FALSE}
+        library(mosaic)
+    set.seed(100)
+        boot1 = do(2500)*{
+	    median(resample(green)$Rent)
+        }
+    set.seed(100)   
+         boot2 = do(2500)*{
+	    median(resample(non_green)$Rent)
+        }
+    ```
+
+95% confidence interval for median of Rents of green building is:
+```{r, echo = FALSE}
+    confint(boot1, level=0.95)
+``` 
+
+and the same for non-green buildings is:
+```{r, echo = FALSE}
+confint(boot2, level=0.95)
+```
+
+The maximum possible difference in rents thus comes out to be $(31.22 - 25.72) =$ `r 31.22 - 25.72` and $(27.5 - 27) =$ `r 27.5 - 27` as the minimum.
+
+3. Before starting the cost benefit analysis, let us check for any confounding variables. This is done because we have found correlation between rent and green buildings uptil now, but have no proof of the causation. Since the clusters take care of controlled sampling, we look for variables which can vary even within a cluster and can impact rents of green vs non-green buildings. Two of such variables are age and class.
+
+    ```{r, echo = FALSE}
+    boxplot(filtered_gb$age~filtered_gb$green_rating,xlab = "green", ylab = "Age of building", pch=1,cex=0.5, main = "Relation between age and green certification")
+    ```
+    
+    It is observed that all green buildings are very new and this can be the cause of high median price of green buildings. Upon checking for the correlation between age and rent, the vaue comes out to be `r cor(filtered_gb$age, filtered_gb$Rent)`.  
+    On checking the same metric of rent with class_a, result obtained is `r cor(filtered_gb$class_a, filtered_gb$Rent)`. The distribution is as follows:
+    
+    
+    ```{r, echo = FALSE}
+    tb = table(as.factor(filtered_gb$class_a),as.factor(filtered_gb$green_rating))
+names(dimnames(tb)) <- c("class_a", "green_rating")
+tb
+    ```
+
+So, it is possible that higher rent seen for green buildings actually come out of the fact that they are new and belong to class_a. Let us fit two logistic regressions and check for important variables to verify the same.
+
+```{r}
+mod1 = glm(Rent ~ age+class_a+green_rating, data = filtered_gb)
+summary(mod1)
+```
+
+It can be seen that green_rating is not a significant variable and variation in rent is highly dependent on class. AIC of this model come out to be 26036 Let us compare this AIC with another model without using green_rating.
+
+```{r}
+mod2 = glm(Rent ~ class_a+age, data = filtered_gb)
+summary(mod2)
+```
+
+The AIC remians almost the same. Hence, it can be stated that green_rating is not a good predictor for rents of buildings. Variation seen by the hired person was actually because of the class of the buildings and age. 
+
+4. Going further, looking at the variation in rents within green buildings, 
+
+ ```{r, echo = FALSE}
+    boxplot(green$Rent~green$LEED,xlab = "LEED", ylab = "Rent", pch=1,cex=0.5, main = "Rent variation among different kinds of green buildings")
+    ```
+    
+  The difference in median values is not significant. Though the spread of LEED certified buildings tend to be on the higher side.
+  
+
+5. Ways to improve the study:  
+Since the location of building is known, the buildier will also know the cluster to which the property belongs. So analysis of rents within clusters of interest can be done to get better insights. Average rents show a remarkable variance within clusters:
+
+```{r, echo = FALSE}
+plot(cluster,Rent,xlab = "cluster", ylab = "cluster_rent", pch=1,cex=0.5, main = "Variation in cluster rents")
+```
+
+
+## Bootstrapping: ETFs
+
+We start with loading data for SPY, TLT, LQD, EEM, VNQ starting 2005 and adjust for the split and dividends. We get a matrix with close to close changes combined for these. 
+
+```{r, include =FALSE}
+library(mosaic)
+library(quantmod)
+library(foreach)
+
+# Import a few stocks
+mystocks = c("SPY","TLT","LQD","EEM","VNQ")
+getSymbols(mystocks, from = "2005-01-01")
+
+SPYa = adjustOHLC(SPY)
+TLTa = adjustOHLC(TLT)
+LQDa = adjustOHLC(LQD)
+EEMa = adjustOHLC(EEM)
+VNQa = adjustOHLC(VNQ)
+
+all_returns = cbind(ClCl(SPYa),ClCl(TLTa),ClCl(LQDa),ClCl(EEMa),ClCl(VNQa))
+all_returns = as.matrix(na.omit(all_returns))
+```
+
+Our matrix looks like this:  
+```{r, echo=FALSE}
+head(all_returns)
+```
+
+To get an idea of the correlation, we plot pairs for all five:
+```{r, echo=FALSE}
+pairs(all_returns)
+```
+All the ETFs look quite correlated with some outliers in EEMa and LQD being very stable.
+
+Lets also look at their individual fluctuations to understand the volatility of each.
+```{r, echo=FALSE}
+par(mfrow=c(3,2))
+plot(all_returns[,1], type='l',ylab = "SPY") #-0.05 to 0.05
+plot(all_returns[,2], type='l',ylab = "TLT") #-0.02 to 0.02
+plot(all_returns[,3], type='l',ylab = "LQD") #-0.01 to 0.01
+plot(all_returns[,4], type='l',ylab = "EEM") #-0.05 to 0.05
+plot(all_returns[,5], type='l',ylab = "VNQ") #-0.03 to 0.03
+```
+
+There is a huge fluctualtion around 1000th observation for all the ETFs. These rows correspond to days in the year 2008 - the time of economic crisis when the stock market went haywire.  
+In an attempt to quantify this fluctualtions, lets look at the correlation matrix and standard deviations of each of these ETFs. Standard deviations are calculated from rows starting 1100 to eliminate the impact of 2008 uncertainty in current predictions.
+
+Correlation matrix:  
+```{r, echo=FALSE}
+cor(all_returns)
+```
+
+Standard Deviations:  
+(a) SPY: `r sd(all_returns[,1])`  
+(b) TLT: `r sd(all_returns[,2])`  
+(c) LQD: `r sd(all_returns[,3])`  
+(d) EEM: `r sd(all_returns[,4])`  
+(e) VNQ: `r sd(all_returns[,5])`  
+
+These numbers suggest that EEM is the most aggressive of all ETFs and LQD the safest.
+
+###Portfolio Management
+
+####Scenario A: The even split 
+
+We will start with initial wealth of 100,000 and take bootstrap samples from data of years 2005 till today to approximate the returns of next 20 days. Wealth after 20 days is thus calculated. This whole process is repeated 5000 times to get a monte carlo distribution of wealth after 20 days.
+
+```{r}
+set.seed(100)
+initial_wealth = 100000
+sim1 = foreach(i=1:5000, .combine='rbind') %do% {    #Monte-carlo
+  total_wealth = initial_wealth
+  weights = c(0.2, 0.2, 0.2, 0.2, 0.2)               #Equal splits
+  n_days = 20
+  wealthtracker = rep(0, n_days)                     #tracking wealth of 20 days for each simulation
+  for(today in 1:n_days) {                           #Bootstrap
+    return.today = resample(all_returns, 1, orig.ids=FALSE)   #taking a bootstrap sample
+    holdings = weights * total_wealth                #redistributing wealth among the ETFs before the start of day
+    holdings = holdings + holdings*return.today      #holdings in each ETF at end of the day
+    total_wealth = sum(holdings)                     #total wealth at end of the day
+    wealthtracker[today] = total_wealth              #populating the wealthtracker
+  }
+  wealthtracker                                      #adding a row to 'sim1' for i th monte carlo simulation
+}
+```
+
+Looking at the distribution of losses at the end of 20 days as a result of 5000 simulations:  
+```{r}
+hist(initial_wealth - sim1[,n_days], 25)
+```
+
+Value at risk at 5% level comes out to be `r round((initial_wealth - quantile(sim1[,n_days], 0.05)),2)`  
+
+#### Scenario B: Safe portfolio 
+
+
+To build a safer portfolio than above, we invest in the less volatile ETFs - identifying using the values of standard deviations. SPY,TLT and LQD come out to be the safest ones. Approach to build this portolio is:  
+
+(a) Create a weighted probability matrix. This will have random probabilities assigned to all 5 ETFs with high chances of high probability being assigned to the safe ETFs. We build these random probability vectors 50 times and store in a matrix wghts2.
+
+```{r}
+set.seed(100)
+wghts2 = foreach(i=1:50, .combine='rbind') %do% {
+  wts = matrix(0,ncol=5)
+  wt = seq(0, 0.8, by=0.1)    #vector for SPY weight to select from
+  wts[1] = resample(wt, 1, orig.ids=FALSE)  #picking up weight for SPY
+  wt = seq(0, 0.9-wts[1], by=0.1)   #vector for TLT to select from
+  wts[2] = resample(wt, 1, orig.ids=FALSE) #picking up weight for TLT
+  wt = c(0,0.1)  #vector for aggressive ones to select from
+  wts[4] = resample(wt, 1, orig.ids=FALSE) 
+  wts[5] = resample(wt, 1, orig.ids=FALSE)
+  wts[3] = 1-wts[1]-wts[2]-wts[4]-wts[5]  #assigning the balance to LQD
+  wts
+}
+
+head(wghts2)
+```
+
+(b) One row correspoding to a probability vector is used a time to run the monte carlo simulations on bootstrapped samples. Maximum loss value at 5% is calculated for each probability vector.
+
+```{r}
+set.seed(100)
+safe = foreach(j = 1:50, .combine='cbind') %do% {
+  initial_wealth = 100000
+  sim2 = foreach(i=1:1000, .combine='rbind') %do% {
+    total_wealth = initial_wealth
+    weights = wghts2[j,]
+    n_days = 20
+    for(today in 1:n_days) {
+      return.today = resample(all_returns, 1, orig.ids=FALSE)
+      holdings = weights * total_wealth
+      holdings = holdings + holdings*return.today
+      total_wealth = sum(holdings)
+    }
+    total_wealth 
+  }
+  sim2
+}
+
+losses = apply(safe,2, function(x) {initial_wealth - quantile(x, 0.05)})
+
+head(losses)
+```
+
+(c) The probability vector which gives the least value of loss is picked up as the optimum distribution to 5 ETFs. 
+
+```{r}
+min(losses)
+wghts2[which(losses==min(losses)),]
+```
+
+So the maximum loss at 5% level comes out to be `r round(min(losses),2)` using the safe portfolio. And optimum distribution of the wealth is 0.1 in SPY, 0.2 in TLT, 0.7 in LQD and nothing in the remaining two. These numbers are totally in sync with the values of standard deviation. LQD being the least volatile one, got the highest percent allocated.
+
+
+#### Scenario C: Aggressive portfolio 
+
+To build one aggressive portfolio, we invest in the highly volatile ETFs - identifying using the values of standard deviations. EEM and VNQ come out to be the most aggresive ones. Approach to build this portolio is similar to the one used above. Only difference is in building the weights matrix. Highest probability is assigned at random to the volatile ETFs and less to the safer ones.  
+
+(a) Forming the weight matrix:
+```{r}
+set.seed(100)
+wghts3 = foreach(i=1:50, .combine='rbind') %do% {
+  wts = matrix(0,ncol=5)
+  wt = c(0,0.1)
+  wts[1] = resample(wt, 1, orig.ids=FALSE)
+  wts[2] = resample(wt, 1, orig.ids=FALSE)
+  wts[3] = resample(wt, 1, orig.ids=FALSE)
+  wt = seq(0.1, 1-wts[2]-wts[3]-wts[5], by=0.1)
+  wts[4] = resample(wt, 1, orig.ids=FALSE)
+  wts[5] = 1 - wts[1] - wts[2] - wts[3] - wts[4]
+  wts
+}
+
+head(wghts3)
+```
+
+
+(b) Calculating maximum loss value at 5% for each probability vector.  
+
+
+```{r}
+set.seed(100)
+aggresive = foreach(j = 1:50, .combine='cbind') %do% {
+  initial_wealth = 100000
+  sim3 = foreach(i=1:1000, .combine='rbind') %do% {
+    total_wealth = initial_wealth
+    weights = wghts3[j,]
+    n_days = 20
+    for(today in 1:n_days) {
+      return.today = resample(all_returns, 1, orig.ids=FALSE)
+      holdings = weights * total_wealth
+      holdings = holdings + holdings*return.today
+      total_wealth = sum(holdings)
+    }
+    total_wealth 
+  }
+  sim3
+}
+
+losses3 = apply(aggresive,2, function(x) {initial_wealth - quantile(x, 0.05)})
+head(losses3)
+```
+
+(c) The probability vector which gives the least value of loss:
+
+```{r}
+min(losses3)
+wghts3[which(losses3==min(losses3)),]
+```
+
+So the maximum loss at 5% level comes out to be `r round(min(losses3),2)` using the aggressive portfolio. And optimum distribution of the wealth is 0.1 in each of the safe ETFs and 0.3 in EEM and 0.4 in VNQ. Interesting thing to note here is that the simulations have assigned the maximum possible probability allowed to the safe ETFs in order to minimise the losses.
+
+#### Conclusion
+
+Comparing maximum loss and maximum profits from each of these three potfolios, we have the following numbers. Left number for each vector is the maximum loss and number on the right is maximum profit.
+
+```{r}
+even = c(0,0)
+even[1] = round((initial_wealth - quantile(sim1[,n_days], 0.05)),2)
+even[2] = round(quantile(sim1[,n_days], 0.95) - initial_wealth,2)
+even
+```
+
+```{r}
+safest = c(0,0)
+safest[1] = round(min(losses),2)
+profit2 = apply(safe,2, function(x) {quantile(x, 0.95) - initial_wealth})
+safest[2] = round(profit2[which(losses==min(losses))],2)
+safest
+```
+
+```{r}
+aggr = c(0,0)
+aggr[1] = round(min(losses3),2)
+profit3 = apply(aggresive,2, function(x) {quantile(x, 0.95) - initial_wealth})
+aggr[2] = round(profit3[which(losses3==min(losses3))],2)
+aggr
+```
+
+So as evident from the above comparisons, though there is a very low value of money at risk in the safe portfolio, chances of high returns are also very low. So depending on the objective of investor, a choice between the safe and aggressive portfolio is to be made. Also, the results can be made more robust by running more simulations and getting a bigger size of wrights matrix. In the interest of time, weights matrix in this solution has only 50 rows and 1000 simulations are being run for each weight distribution. 
+
+
+## Market Segmentation
+
+```{r, include = FALSE}
+library(ggplot2)
+library(LICORS)  # for kmeans++
+library(foreach)
+library(mosaic)
+
+sm <- read.csv("../data/social_marketing.csv", row.names=1)
+```
+
+We will first have an overview of the data before proceeding to segmentation.
+
+```{r}
+head(sm, 5)
+```
+
+```{r, echo = FALSE}
+print(paste("number of rows in data =", nrow(sm), "and number of columns =", ncol(sm)))
+```
+
+Lets have a look at the number of tweets in each category.
+
+```{r, echo = FALSE}
+sum = sort(colSums(sm),decreasing = TRUE)
+barplot(sum,las=2)
+```
+
+Maximum number of tweets are categorized under chatter. Since this is a miscellaneous category and will not have any information about market segments, we will drop this column before proceeding with clustering algorithms.
+
+```{r}
+sm1 = sm[c(-1)]
+###plot the bars again
+sum = sort(colSums(sm1),decreasing = TRUE)
+barplot(sum,las=2)
+```
+
+
+  
+#### (a) K means++
+
+We will try K means++ to form clusters of data and find the optimum value of number of clusters by having a look at the cost of clusters for each K.
+
+```{r}
+
+# Center/scale the data
+X = scale(sm1, center=TRUE, scale=TRUE) 
+
+# Using kmeans++ initialization
+k_max = 20  #check for costs by varying value of k from 1 to 20
+cost = rep(0, k_max)   #initiate a vector for values of cost
+set.seed(100)
+for (i in 1:k_max){ 
+clust1 = kmeanspp(X, k=i, nstart=25)   #fit the clusters
+cost[i] = clust1$tot.withinss  #calculate the cost of each cluster 
+}
+```
+
+Look at the plot of cost Vs number of clusters:  
+```{r, echo = FALSE}
+
+plot(1:k_max, cost,
+     type="b", pch = 19,
+     xlab="Number of clusters K",
+     ylab="Total within-clusters")
+```
+
+K= 10 looks like the optimum value for K,above which the slope of cost curve decreases.So a final cluster will be obtained now with this optimum k to proceed with further analysis.
+
+```{r}
+k_opt = 10
+set.seed(100)
+clust1 = kmeanspp(X, k=k_opt, nstart=25)
+```
+
+Lets look at the cluster sizes-
+```{r}
+summary(factor(clust1$cluster))
+```
+
+One of the clusters has only 49 values and one other has 3352. The clusters are not equally sized and we will like to explore other clustering algorithms too to see if the data can be segmented in a better way. Before doing that, we will try to infer something from the center matrix obtained from this clustering.
+
+```{r}
+#View the 4 most talked about and 4 least talked about tweets for each cluster
+heads=NULL
+tails=NULL
+for (i in (1:10)){
+  o = order((t(clust1$center)[,i]), decreasing=TRUE)
+  heads = rbind(heads,colnames(sm1)[head(o,3)])
+  tails = rbind(tails,colnames(sm1)[tail(o,3)])
+}
+```
+
+Most talked about tweets in each cluster:
+```{r, echo =FALSE}
+heads
+```
+
+Least talked about tweets in each cluster:
+```{r, echo =FALSE}
+tails
+```
+
+Looking at the these, we see that cluster 1 looks like a segment of college undergrads. Cluster 6 of art lovers ans so on. We can identify each cluster into a broad segment. This will be done in detail after we try out another algorithm - heirarchical clustering.
+
+#### (b)  Heirarchical Clustering  
+
+Heirarchical clustering will be done on variables obtained from Principal Component analysis. This will reduce the dimensions of our data from 35 variables to a few and lead to a quick cluster formation using heirarchical clustering.  
+
+```{r}
+pc = prcomp(sm1, scale.=TRUE)
+summary(pc)
+```
+
+The table above shows that around 75% of the variablility is explained by using 15 variables.
+
+Looking at the variance explained by each principal component:  
+```{r, echo = FALSE}
+plot(pc,type='l')
+```
+
+There is an elbow at number of components = 6 but from the table, 6 components only explain 45% of the variability. Hence, we will do clustering using first 15 variables (75% variability).
+
+```{r}
+loadings = pc$rotation
+
+heads = NULL
+tails = NULL
+for (i in (1:35)){
+o1 = order((loadings[,i]), decreasing=TRUE)
+heads = rbind(heads,colnames(sm)[head(o1,3)])
+tails = rbind(tails,colnames(sm)[tail(o1,3)])
+}
+```
+
+Most important features having positive realtion in first 15 PCs:  
+```{r}
+(heads)[1:15,]
+```
+
+Most important features having negative relation in first 15 PCs:  
+```{r}
+(tails)[1:15,]
+```
+
+Now lets do clustering on these variables and look at the dendogram.
+```{r}
+X1 <- scale(pc$x, center=TRUE, scale=TRUE) 
+# Ward Hierarchical Clustering
+d_pc = dist(X1[,1:16], method = "euclidean") # distance matrix
+set.seed(100)
+clust2 = hclust(d_pc, method="ward.D")
+plot(clust2) # display dendogram
+```
+
+We will have to cut this to an appropriate number of branches. Looking at the above plot, k = 10 should do a good job.
+
+```{r}
+plot(clust2)
+groups = cutree(clust2, k=10) # cut tree into 10 clusters
+# draw dendogram with red borders around the 10 clusters 
+rect.hclust(clust2, k=10, border="red")
+```
+
+```{r}
+summary(factor(groups))
+```
+
+Cluster sizes now look even. We can go ahead with this. So now lets try to analyse the segments this clustering has made. These are plots of categories with maximum number of tweets in each cluster.
+
+```{r, echo = FALSE}
+result_clust2 = cbind(sm1, clusterNum = groups)
+par(mfrow = c(3,4))
+for (i in 1:10){
+  c = result_clust2[which(result_clust2$clusterNum == i),]
+  slice = sort(colSums(c)[-36],decreasing = TRUE)[1:6]  #-36 to get rid of cluster number
+  barplot(slice, main=paste("cluster",i),las=2,ylim = c(0,11000))
+}
+```
+
+A rough idea of each of the plots could be as follows:  
+Cluster 1: Fitness freaks  
+Cluster 2: Parents with school going kids who follow sports  
+Cluster 3: Art lovers having a chill lifestyle  
+Cluster 4: Journalists  
+Cluster 5: Technical job holders  
+Cluster 6: Celebrity chefs or people who love cooking and are also into fashion  
+Cluster 7: College going students 
+Cluster 8: High scool kids
+Cluster 9: Working in automotive industry
+Cluster 10: Some adults  
+
+Considering only the number of tweets in each category, there are big numbers of tweets in 'photo sharing', 'health nutrition' and 'cooking'. This gives a rough idea that the followers of NutrientH20 are some social media active users who are concerned about healthy eating habits. On diving further into the clusters(cluster 1 - 10), these can be broadly classified into  
+1. Fitness freaks who dont tweet about anything else.
+2. Employed people pulling off heavy work hours.
+3. College and high school students.
+4. Chilled out people who are into art and travel.  
+
+Advertising firm can thus do a targetted online campaign based on this broad market segments.
+
+
