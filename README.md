@@ -2,5 +2,7 @@
 2. Exploratory Analysis
 3. Predicting stocks returns
 4. Clustering
-#STA380
-#James Scott
+
+
+ #STA380
+ #James Scott
